@@ -1,7 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import {
   Calendar,
@@ -68,12 +69,12 @@ export default function HomePage() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-secondary" onClick={() => router.push('/login')}>
-            Sign In
-          </button>
-          <button className="btn-primary" onClick={() => router.push('/register')}>
-            Get Started <ArrowRight size={16} />
-          </button>
+          <Link href="/login">
+            <button className="btn-secondary">Sign In</button>
+          </Link>
+          <Link href="/register">
+            <button className="btn-primary">Get Started <ArrowRight size={16} /></button>
+          </Link>
         </div>
       </nav>
 
@@ -162,20 +163,22 @@ export default function HomePage() {
           </p>
 
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-            <button
-              className="btn-primary"
-              style={{ padding: '14px 32px', fontSize: '16px' }}
-              onClick={() => router.push('/register')}
-            >
-              Book an Appointment <ArrowRight size={18} />
-            </button>
-            <button
-              className="btn-secondary"
-              style={{ padding: '14px 32px', fontSize: '16px' }}
-              onClick={() => router.push('/login')}
-            >
-              Doctor Login
-            </button>
+            <Link href="/register">
+              <button
+                className="btn-primary"
+                style={{ padding: '14px 32px', fontSize: '16px' }}
+              >
+                Book an Appointment <ArrowRight size={18} />
+              </button>
+            </Link>
+            <Link href="/login">
+              <button
+                className="btn-secondary"
+                style={{ padding: '14px 32px', fontSize: '16px' }}
+              >
+                Doctor Login
+              </button>
+            </Link>
           </div>
         </div>
       </section>
