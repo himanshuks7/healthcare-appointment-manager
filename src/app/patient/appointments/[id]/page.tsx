@@ -73,8 +73,20 @@ export default function PatientAppointmentDetailPage() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ action: 'resend_email' }),
                     });
-                    if (res.ok) toast.success('Confirmation email sent!');
-                    else toast.error('Failed to send email');
+                    const data = await res.json();
+                    if (res.ok) {
+                      toast.success('Confirmation email sent!');
+                      if (data.previewUrl) {
+                        toast((t) => (
+                          <span>
+                            <a href={data.previewUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>
+                              View Email Preview
+                            </a>
+                          </span>
+                        ), { duration: 8000 });
+                      }
+                    }
+                    else toast.error(data.error || 'Failed to send email');
                   } catch { toast.error('Failed to send email'); }
                 }}
               >
