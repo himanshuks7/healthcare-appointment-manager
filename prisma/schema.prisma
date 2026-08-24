@@ -1,0 +1,148 @@
+// Prisma schema for Healthcare Appointment Manager
+// Database: SQLite (easily swappable to PostgreSQL for production)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User Model ──────────────────────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  role          String    @default("PATIENT") // PATIENT | DOCTOR | ADMIN
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  doctorProfile       DoctorProfile?
+  patientAppointments Appointment[]        @relation("PatientAppointments")
+  medicationReminders MedicationReminder[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ─── Doctor Profile Model ────────────────────────────────────────────────────
+model DoctorProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  specialisation    String
+  qualification     String
+  bio               String?
+  slotDurationMinutes Int    @default(30)
+  workingHoursStart String   @default("09:00")  // HH:mm format
+  workingHoursEnd   String   @default("17:00")  // HH:mm format
+  workingDays       String   @default("1,2,3,4,5") // comma-separated: 0=Sun, 1=Mon, ..., 6=Sat
+  isActive          Boolean  @default(true)
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[] @relation("DoctorAppointments")
+  leaveDays    DoctorLeave[]
+
+  @@index([specialisation])
+  @@index([isActive])
+}
+
+// ─── Doctor Leave Model ──────────────────────────────────────────────────────
+model DoctorLeave {
+  id        String   @id @default(cuid())
+  doctorId  String
+  leaveDate DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, leaveDate])
+  @@index([leaveDate])
+}
+
+// ─── Appointment Model ───────────────────────────────────────────────────────
+model Appointment {
+  id                     String   @id @default(cuid())
+  patientId              String
+  doctorId               String
+  slotStart              DateTime
+  slotEnd                DateTime
+  status                 String   @default("PENDING") // PENDING | CONFIRMED | CANCELLED | COMPLETED | RESCHEDULED
+  
+  // Symptom & AI Summary
+  symptoms               String?
+  preVisitSummary        String?  // JSON string from LLM
+  urgencyLevel           String?  // LOW | MEDIUM | HIGH
+  
+  // Post-visit
+  postVisitNotes         String?
+  prescription           String?
+  postVisitSummary       String?  // JSON string from LLM
+  
+  // Calendar integration
+  calendarEventIdPatient String?
+  calendarEventIdDoctor  String?
+  
+  // Concurrency control
+  version                Int      @default(1)
+  holdExpiresAt          DateTime?
+  
+  // Timestamps
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Relations
+  patient              User                 @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor               DoctorProfile        @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  medicationReminders  MedicationReminder[]
+
+  @@unique([doctorId, slotStart, status])
+  @@index([patientId])
+  @@index([doctorId, slotStart])
+  @@index([status])
+  @@index([holdExpiresAt])
+}
+
+// ─── Medication Reminder Model ───────────────────────────────────────────────
+model MedicationReminder {
+  id              String   @id @default(cuid())
+  appointmentId   String
+  patientId       String
+  medication      String
+  dosage          String
+  frequency       String   // e.g., "twice daily", "every 8 hours"
+  startDate       DateTime
+  endDate         DateTime
+  nextReminderAt  DateTime
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patient     User        @relation(fields: [patientId], references: [id])
+
+  @@index([nextReminderAt, isActive])
+  @@index([patientId])
+}
+
+// ─── Email Log Model ─────────────────────────────────────────────────────────
+model EmailLog {
+  id          String   @id @default(cuid())
+  to          String
+  subject     String
+  body        String
+  status      String   @default("PENDING") // PENDING | SENT | FAILED
+  retryCount  Int      @default(0)
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([status, retryCount])
+}
