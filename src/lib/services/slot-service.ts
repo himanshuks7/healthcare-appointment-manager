@@ -8,7 +8,8 @@ import type { TimeSlot } from '@/types';
  */
 export async function getAvailableSlots(
   doctorProfileId: string,
-  date: Date
+  date: Date,
+  filterPastSlots: boolean = true
 ): Promise<TimeSlot[]> {
   // Get doctor profile
   const doctor = await prisma.doctorProfile.findUnique({
@@ -85,14 +86,14 @@ export async function getAvailableSlots(
     existingAppointments.map((appt) => new Date(appt.slotStart).getTime())
   );
 
-  // Filter out past slots if the date is today
+  // Filter out past slots only when booking (not for doctor schedule view)
   const now = new Date();
 
   return slots.map((slot) => ({
     ...slot,
     available:
       !bookedStarts.has(new Date(slot.start).getTime()) &&
-      isAfter(new Date(slot.start), now),
+      (filterPastSlots ? isAfter(new Date(slot.start), now) : true),
   }));
 }
 

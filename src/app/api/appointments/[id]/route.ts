@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { generatePostVisitSummary } from '@/lib/services/llm-service';
-import { sendEmail, cancellationEmail } from '@/lib/services/email-service';
+import { sendEmail, cancellationEmail, confirmationEmail } from '@/lib/services/email-service';
 import { format } from 'date-fns';
 
 // GET /api/appointments/[id] - Get appointment details
@@ -143,6 +143,30 @@ export async function PUT(
       }).catch(console.error);
 
       return NextResponse.json({ success: true, message: 'Visit completed' });
+    }
+
+    // Handle resend email confirmation
+    if (action === 'resend_email') {
+      const emailData = confirmationEmail({
+        patientName: appointment.patient.name,
+        doctorName: appointment.doctor.user.name,
+        specialisation: appointment.doctor.specialisation,
+        date: format(new Date(appointment.slotStart), 'dd MMM yyyy'),
+        time: format(new Date(appointment.slotStart), 'hh:mm a'),
+        appointmentId: appointment.id,
+      });
+      emailData.to = appointment.patient.email;
+
+      const result = await sendEmail(emailData);
+      if (result.success) {
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Confirmation email sent',
+          previewUrl: result.previewUrl || null,
+        });
+      } else {
+        return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

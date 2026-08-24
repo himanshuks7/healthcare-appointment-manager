@@ -20,7 +20,11 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
     }
 
-    const slots = await getAvailableSlots(id, date);
+    // If view=schedule, don't filter past slots (for doctor's own schedule view)
+    const view = searchParams.get('view');
+    const filterPastSlots = view !== 'schedule';
+
+    const slots = await getAvailableSlots(id, date, filterPastSlots);
 
     return NextResponse.json({ slots });
   } catch (error) {

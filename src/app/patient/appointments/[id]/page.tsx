@@ -53,9 +53,37 @@ export default function PatientAppointmentDetailPage() {
           <span className={`badge badge-${appointment.status.toLowerCase()}`}>{appointment.status}</span>
           {appointment.urgencyLevel && <span className={`badge badge-${appointment.urgencyLevel.toLowerCase()}`} style={{ marginLeft: '8px' }}>{appointment.urgencyLevel}</span>}
         </div>
-        {['PENDING', 'CONFIRMED'].includes(appointment.status) && (
-          <button className="btn-danger" onClick={handleCancel}><XCircle size={16} /> Cancel</button>
-        )}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {['PENDING', 'CONFIRMED'].includes(appointment.status) && (
+            <>
+              <a
+                href={`/api/appointments/${appointment.id}/calendar`}
+                download
+                className="btn-primary"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Calendar size={16} /> Add to Calendar
+              </a>
+              <button
+                className="btn-secondary"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/appointments/${appointment.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'resend_email' }),
+                    });
+                    if (res.ok) toast.success('Confirmation email sent!');
+                    else toast.error('Failed to send email');
+                  } catch { toast.error('Failed to send email'); }
+                }}
+              >
+                📧 Resend Email
+              </button>
+              <button className="btn-danger" onClick={handleCancel}><XCircle size={16} /> Cancel</button>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>

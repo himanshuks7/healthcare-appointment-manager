@@ -17,7 +17,7 @@ export default function DoctorSchedulePage() {
   const fetchSlots = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/doctors/${session?.user?.doctorProfileId}/slots?date=${selectedDate}`);
+      const res = await fetch(`/api/doctors/${session?.user?.doctorProfileId}/slots?date=${selectedDate}&view=schedule`);
       const data = await res.json();
       setSlots(data.slots || []);
     } catch {} finally { setLoading(false); }

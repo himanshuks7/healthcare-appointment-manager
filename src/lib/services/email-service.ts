@@ -20,9 +20,9 @@ interface EmailOptions {
 
 /**
  * Sends an email and logs it to the database.
- * Supports retry on failure.
+ * Supports retry on failure. Returns preview URL for Ethereal.
  */
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
+export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; previewUrl?: string }> {
   const { to, subject, html } = options;
 
   // Log the email attempt
@@ -36,7 +36,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   });
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@healthcareapp.com',
       to,
       subject,
@@ -48,7 +48,13 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       data: { status: 'SENT', sentAt: new Date() },
     });
 
-    return true;
+    // Get Ethereal preview URL if available
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log(`📧 Email preview URL: ${previewUrl}`);
+    }
+
+    return { success: true, previewUrl: previewUrl || undefined };
   } catch (error: any) {
     console.error(`Email send failed to ${to}:`, error.message);
 
@@ -61,7 +67,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       },
     });
 
-    return false;
+    return { success: false };
   }
 }
 
@@ -167,6 +173,9 @@ export function bookingConfirmationEmail(data: {
     `,
   };
 }
+
+// Alias for confirmationEmail
+export const confirmationEmail = bookingConfirmationEmail;
 
 export function appointmentReminderEmail(data: {
   patientName: string;
